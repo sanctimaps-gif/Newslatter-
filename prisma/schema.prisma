@@ -1,0 +1,158 @@
+// Base de données de l'application Newsletter SanctiMaps.
+// Elle ne contient AUCUNE donnée « saint » de référence : SanctiMaps reste la
+// source principale. Seul un instantané du contenu envoyé est conservé pour
+// l'historique.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SubscriberStatus {
+  pending
+  active
+  unsubscribed
+  blocked
+}
+
+enum NewsletterStatus {
+  draft
+  scheduled
+  sending
+  sent
+  failed
+}
+
+enum DeliveryStatus {
+  sending
+  sent
+  failed
+}
+
+enum LogLevel {
+  info
+  warn
+  error
+}
+
+model Subscriber {
+  id                 String           @id @default(uuid()) @db.Uuid
+  email              String           @unique
+  firstName          String?
+  status             SubscriberStatus @default(pending)
+  // Jeton aléatoire opaque utilisé dans les liens de désinscription.
+  // Il ne contient aucune donnée personnelle.
+  unsubscribeToken   String           @unique
+  // Seul le hash SHA-256 du jeton de confirmation est stocké.
+  confirmTokenHash   String?          @unique
+  confirmTokenExpiry DateTime?
+  subscribedAt       DateTime         @default(now())
+  confirmedAt        DateTime?
+  unsubscribedAt     DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  consents   ConsentEvent[]
+  deliveries Delivery[]
+
+  @@index([status, id])
+}
+
+// Preuve du consentement (RGPD) : chaque étape du double opt-in est tracée.
+model ConsentEvent {
+  id             String     @id @default(uuid()) @db.Uuid
+  subscriberId   String     @db.Uuid
+  subscriber     Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  // subscribe_request | confirm | unsubscribe | admin_block | admin_unblock
+  action         String
+  consentText    String?
+  source         String?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime   @default(now())
+
+  @@index([subscriberId])
+}
+
+model Newsletter {
+  id             String           @id @default(uuid()) @db.Uuid
+  // Identifiant unique par date : « newsletter-2026-09-22 ».
+  // La contrainte d'unicité empêche physiquement deux newsletters le même jour.
+  key            String           @unique
+  date           String           // AAAA-MM-JJ (fuseau de la configuration)
+  status         NewsletterStatus @default(draft)
+  trigger        String           @default("auto") // auto | manual
+  subject        String?
+  html           String?
+  text           String?
+  saints         Json?            // instantané des données SanctiMaps utilisées
+  totalRecipients Int             @default(0)
+  sentCount      Int              @default(0)
+  failedCount    Int              @default(0)
+  attempts       Int              @default(0)
+  nextAttemptAt  DateTime?
+  // Verrou (bail) empêchant deux processus de traiter le même envoi.
+  lockedUntil    DateTime?
+  lastError      String?
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  deliveries Delivery[]
+  logs       LogEntry[]
+
+  @@index([status])
+  @@index([date])
+}
+
+// Une ligne par destinataire et par newsletter : empêche d'envoyer deux fois
+// la même newsletter à la même personne, y compris après une reprise.
+model Delivery {
+  id           String         @id @default(uuid()) @db.Uuid
+  newsletterId String         @db.Uuid
+  newsletter   Newsletter     @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  subscriberId String         @db.Uuid
+  subscriber   Subscriber     @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  status       DeliveryStatus @default(sending)
+  messageId    String?
+  error        String?
+  // true si l'échec est temporaire (panne SMTP…) : réessayé lors d'une reprise manuelle.
+  retryable    Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([newsletterId, subscriberId])
+  @@index([newsletterId, status])
+}
+
+model LogEntry {
+  id           String      @id @default(uuid()) @db.Uuid
+  newsletterId String?     @db.Uuid
+  newsletter   Newsletter? @relation(fields: [newsletterId], references: [id], onDelete: SetNull)
+  level        LogLevel    @default(info)
+  message      String
+  context      Json?
+  createdAt    DateTime    @default(now())
+
+  @@index([createdAt])
+  @@index([newsletterId])
+}
+
+// Configuration modifiable depuis /admin/settings (une seule ligne, id = 1).
+// Les secrets (mot de passe SMTP, clé API SanctiMaps) restent dans les
+// variables d'environnement et ne sont jamais stockés ici.
+model Settings {
+  id             Int      @id @default(1)
+  autoSendEnabled Boolean @default(false)
+  sendTime       String   @default("07:00")
+  timezone       String   @default("Europe/Paris")
+  frequency      String   @default("daily")
+  fromEmail      String?
+  fromName       String?
+  updatedAt      DateTime @updatedAt
+}
