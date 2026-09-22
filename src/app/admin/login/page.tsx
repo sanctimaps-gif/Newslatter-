@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { env } from "@/lib/env";
-import { verifyPassword, safeEqual } from "@/lib/crypto";
+import { verifyPassword, safeEqual, sha256 } from "@/lib/crypto";
 import { createSession, getSession } from "@/lib/auth";
 import { requestMeta } from "@/lib/request-meta";
 import { rateLimit } from "@/lib/rate-limit";
@@ -22,7 +22,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     const password = String(formData.get("password") ?? "");
     const e = env();
     const emailOk = safeEqual(email, e.ADMIN_EMAIL.toLowerCase());
-    const passwordOk = await verifyPassword(password, e.ADMIN_PASSWORD_HASH);
+    const passwordOk = e.ADMIN_PASSWORD_HASH
+      ? await verifyPassword(password, e.ADMIN_PASSWORD_HASH)
+      : safeEqual(sha256(password), sha256(e.ADMIN_PASSWORD ?? ""));
     if (!emailOk || !passwordOk) {
       await log("warn", "Échec de connexion à l'administration", { context: { ip } });
       redirect("/admin/login?error=invalid");

@@ -40,10 +40,13 @@ Format interne des données (`src/lib/types.ts`) :
 
 ## Installation
 
+**Mise en ligne sur Vercel (sans ligne de commande)** : voir [docs/deploiement-vercel.md](docs/deploiement-vercel.md).
+
+
 ```bash
 npm install
 cp .env.example .env            # puis compléter
-npm run hash-password -- "un mot de passe long"   # → ADMIN_PASSWORD_HASH
+npm run hash-password -- "un mot de passe long"   # → ADMIN_PASSWORD_HASH (ou ADMIN_PASSWORD en clair)
 openssl rand -base64 48         # → SESSION_SECRET, CRON_SECRET, clé API SanctiMaps
 npm run db:migrate              # applique les migrations Prisma
 npm run build && npm start

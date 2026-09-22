@@ -11,7 +11,10 @@ const schema = z.object({
   APP_URL: z.string().url(),
 
   ADMIN_EMAIL: z.string().email(),
-  ADMIN_PASSWORD_HASH: z.string().min(1),
+  // Hash scrypt (npm run hash-password) OU, à défaut, mot de passe en clair
+  // (pratique pour configurer depuis le tableau de bord de l'hébergeur).
+  ADMIN_PASSWORD_HASH: z.string().optional(),
+  ADMIN_PASSWORD: z.string().min(12, "ADMIN_PASSWORD doit faire au moins 12 caractères").optional(),
   SESSION_SECRET: z.string().min(32, "SESSION_SECRET doit faire au moins 32 caractères"),
 
   CRON_SECRET: z.string().min(16, "CRON_SECRET doit faire au moins 16 caractères"),
@@ -40,6 +43,9 @@ const schema = z.object({
 
   ALLOWED_ORIGINS: z.string().default("https://sanctimaps.fr,https://www.sanctimaps.fr"),
   LOGO_URL: z.string().url().optional(),
+}).refine((e) => e.ADMIN_PASSWORD_HASH || e.ADMIN_PASSWORD, {
+  message: "ADMIN_PASSWORD_HASH ou ADMIN_PASSWORD doit être défini",
+  path: ["ADMIN_PASSWORD"],
 });
 
 export type Env = z.infer<typeof schema>;
