@@ -13,6 +13,8 @@ SanctiMaps ──(GET /api/newsletter/today, Bearer)──▶ Newsletter App ─
                                                      └─ historique + logs
 ```
 
+**Démo interactive** (données fictives, sans serveur) : https://sanctimaps-gif.github.io/Newslatter-/ — fichier `index.html` + `demo/`, publiés par GitHub Pages. L'application réelle, elle, doit être hébergée sur un serveur Node.js avec PostgreSQL (voir « Installation »).
+
 **Stack** : Next.js 15 + TypeScript, PostgreSQL + Prisma, Nodemailer (SMTP). Aucune dépendance à Brevo.
 
 ## Organisation du code

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Newsletter SanctiMaps — Démo</title>
+<meta name="description" content="Démonstration interactive de l'application de newsletter quotidienne SanctiMaps.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231f3a5f%22/%3E%3Cpath d=%22M16 6v20M9 13h14%22 stroke=%22%23fff%22 stroke-width=%223%22/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--text:#22252a;--muted:#6b6f76;--border:#e3ded3;--primary:#1f3a5f;--accent:#b8860b;--ok:#1e7b45;--ok-bg:#e7f5ec;--warn:#8a5a00;--warn-bg:#fff4dc;--err:#b42318;--err-bg:#fdecea;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);line-height:1.5}
+a{color:var(--primary)}h1{font-size:1.5rem;margin:0 0 .75rem}h2{font-size:1.15rem;margin:0 0 .75rem}
+.demo-banner{background:var(--accent);color:#fff;text-align:center;padding:8px 16px;font-size:.9rem}
+.topbar{background:var(--primary);color:#fff}
+.topbar .inner{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center}
+.brand{font-weight:700;letter-spacing:.04em;margin-right:auto}
+.topbar a{color:#fff;text-decoration:none;opacity:.8;font-size:.95rem;padding:2px 0;border-bottom:2px solid transparent}
+.topbar a.active{opacity:1;border-bottom-color:#fff}
+.page{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:18px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:18px}
+.stat .label{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.stat .value{font-size:1.3rem;font-weight:600;margin-top:4px}
+.btn{display:inline-block;border:1px solid var(--primary);background:var(--primary);color:#fff;padding:9px 15px;border-radius:8px;font-size:.95rem;cursor:pointer;text-decoration:none;font-family:inherit}
+.btn.secondary{background:transparent;color:var(--primary)}.btn.danger{background:var(--err);border-color:var(--err)}.btn.small{padding:4px 10px;font-size:.85rem}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+label{display:block;font-weight:500;margin-bottom:4px}
+input[type=text],input[type=email],input[type=time],input[type=date],select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:1rem;background:#fff;color:var(--text);font-family:inherit}
+.field{margin-bottom:14px}.inline{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}.inline .field{margin:0;flex:1 1 200px}
+.hint{color:var(--muted);font-size:.87rem}
+.alert{padding:10px 14px;border-radius:8px;margin-bottom:14px;border:1px solid transparent}
+.alert.ok{background:var(--ok-bg);color:var(--ok);border-color:#bfe3cd}.alert.err{background:var(--err-bg);color:var(--err);border-color:#f5c2bd}.alert.warn{background:var(--warn-bg);color:var(--warn);border-color:#f1d9a6}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.8rem;font-weight:600;background:#eceae4;color:#444}
+.badge.sent,.badge.active{background:var(--ok-bg);color:var(--ok)}.badge.failed,.badge.blocked{background:var(--err-bg);color:var(--err)}.badge.sending,.badge.pending,.badge.scheduled{background:var(--warn-bg);color:var(--warn)}
+.log{font-family:ui-monospace,Menlo,monospace;font-size:.85rem}.log .error{color:var(--err)}
+iframe.preview{width:100%;height:1050px;border:1px solid var(--border);border-radius:8px;background:#fff;display:block;margin:0 auto}
+iframe.preview.mobile{width:375px;max-width:100%}
+.narrow{max-width:520px;margin:0 auto}
+.view{display:none}.view.active{display:block}
+</style>
+</head>
+<body>
+<div class="demo-banner">Démo interactive — données fictives, aucun e-mail n'est réellement envoyé. Vos actions restent dans votre navigateur.</div>
+<header class="topbar"><nav class="inner">
+  <span class="brand">SANCTIMAPS NEWSLETTER</span>
+  <a href="#dashboard">Tableau de bord</a>
+  <a href="#newsletter">Newsletter</a>
+  <a href="#schedule">Programmation</a>
+  <a href="#subscribers">Abonnés</a>
+  <a href="#history">Historique</a>
+  <a href="#settings">Paramètres</a>
+  <a href="#subscribe">Formulaire public</a>
+</nav></header>
+
+<main class="page">
+  <div id="flash"></div>
+
+  <!-- TABLEAU DE BORD -->
+  <section class="view" id="view-dashboard">
+    <h1>Tableau de bord</h1>
+    <div class="grid">
+      <div class="card stat"><div class="label">Aujourd'hui</div><div class="value" id="d-saint"></div></div>
+      <div class="card stat"><div class="label">Prochain envoi</div><div class="value" id="d-next"></div><p class="hint" id="d-next-hint"></p></div>
+      <div class="card stat"><div class="label">Abonnés actifs</div><div class="value" id="d-subs"></div></div>
+      <div class="card stat"><div class="label">Dernier envoi</div><div class="value" id="d-last"></div><p class="hint" id="d-last-hint"></p></div>
+    </div>
+    <div class="card">
+      <h2>Newsletter du jour (<span id="d-today"></span>)</h2>
+      <p>Statut : <span id="d-status"></span></p>
+      <div class="actions" style="margin-bottom:14px"><a class="btn secondary" href="#newsletter">Prévisualiser</a></div>
+      <form class="inline" data-test-form>
+        <div class="field"><label>Adresse de test</label><input type="email" required placeholder="test@example.com"></div>
+        <button class="btn secondary">Envoyer un test</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Envoyer maintenant</h2>
+      <p class="hint">Envoie la newsletter du jour à tous les abonnés actifs. Si elle a déjà été envoyée aujourd'hui, rien ne se passe (protection contre les doubles envois).</p>
+      <form class="actions" id="send-now">
+        <label style="font-weight:400"><input type="checkbox" required> Je confirme l'envoi à <span id="d-count"></span> abonné(s)</label>
+        <button class="btn danger">Envoyer maintenant</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- NEWSLETTER -->
+  <section class="view" id="view-newsletter">
+    <h1>Newsletter</h1>
+    <div class="card">
+      <p><strong>Objet :</strong> <span id="n-subject"></span></p>
+      <div class="actions" style="margin-bottom:14px">
+        <button class="btn" data-pv="desktop">Aperçu</button>
+        <button class="btn secondary" data-pv="mobile">Version mobile</button>
+        <button class="btn secondary" id="n-switch">Voir un jour avec deux saints</button>
+      </div>
+      <iframe class="preview" id="n-frame" title="Aperçu de la newsletter" sandbox="allow-popups"></iframe>
+    </div>
+    <div class="card">
+      <h2>Envoyer un test</h2>
+      <p class="hint">L'envoi test n'envoie rien aux abonnés et ne compte pas comme l'envoi du jour.</p>
+      <form class="inline" data-test-form>
+        <div class="field"><label>Adresse de test</label><input type="email" required placeholder="test@example.com"></div>
+        <button class="btn secondary">Envoyer un test</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- PROGRAMMATION -->
+  <section class="view" id="view-schedule">
+    <h1>Programmation</h1>
+    <div class="card">
+      <form id="schedule-form">
+        <div class="field"><label style="font-weight:400"><input type="checkbox" name="auto"> <strong>Newsletter automatique</strong> (ON / OFF)</label></div>
+        <div class="grid" style="margin-bottom:0">
+          <div class="field"><label>Heure</label><input type="time" name="time" required></div>
+          <div class="field"><label>Fuseau horaire</label><select name="tz"><option>Europe/Paris</option><option>Europe/Brussels</option><option>Europe/Zurich</option><option>America/Montreal</option><option>UTC</option></select></div>
+          <div class="field"><label>Fréquence</label><select><option>Une fois par jour</option></select></div>
+        </div>
+        <button class="btn">Enregistrer</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Journal</h2>
+      <div class="table-wrap log"><table><tbody id="s-logs"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ABONNÉS -->
+  <section class="view" id="view-subscribers">
+    <h1>Abonnés</h1>
+    <div class="grid" id="sub-counts"></div>
+    <div class="card">
+      <div class="inline" style="margin-bottom:14px">
+        <div class="field"><label>Recherche par e-mail</label><input type="text" id="sub-q"></div>
+        <div class="field"><label>Statut</label><select id="sub-status"><option value="">Tous</option><option value="active">Actif</option><option value="pending">En attente</option><option value="unsubscribed">Désinscrit</option><option value="blocked">Bloqué</option></select></div>
+      </div>
+      <p class="hint">Les inscriptions passent uniquement par le formulaire public (double opt-in). Essayez-le dans l'onglet « Formulaire public ».</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>E-mail</th><th>Prénom</th><th>Statut</th><th>Inscription</th><th>Confirmation</th><th>Actions</th></tr></thead>
+        <tbody id="sub-rows"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- HISTORIQUE -->
+  <section class="view" id="view-history">
+    <h1>Historique</h1>
+    <div class="card table-wrap"><table>
+      <thead><tr><th>Date</th><th>Saint</th><th>Objet</th><th>Destinataires</th><th>Statut</th><th>Heure</th></tr></thead>
+      <tbody id="h-rows"></tbody>
+    </table></div>
+    <div class="card"><h2>Logs du dernier envoi</h2><div class="table-wrap log"><table><tbody id="h-logs"></tbody></table></div></div>
+  </section>
+
+  <!-- PARAMÈTRES -->
+  <section class="view" id="view-settings">
+    <h1>Paramètres</h1>
+    <div class="card">
+      <h2>Expéditeur</h2>
+      <form id="sender-form">
+        <div class="grid" style="margin-bottom:0">
+          <div class="field"><label>Adresse expéditeur</label><input type="email" name="email"></div>
+          <div class="field"><label>Nom expéditeur</label><input type="text" name="name"></div>
+        </div>
+        <button class="btn">Enregistrer</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Serveur SMTP</h2>
+      <table><tbody>
+        <tr><th>Fournisseur</th><td>SMTP (remplaçable : EmailProvider)</td></tr>
+        <tr><th>Serveur SMTP</th><td>smtp.exemple.fr</td></tr>
+        <tr><th>Port SMTP</th><td>587 (STARTTLS)</td></tr>
+        <tr><th>Mot de passe</th><td>configuré (masqué, côté serveur uniquement)</td></tr>
+        <tr><th>Débit</th><td>5 e-mails/s, lots de 100</td></tr>
+      </tbody></table>
+      <p class="hint">Les identifiants SMTP sont définis par variables d'environnement et ne sont jamais affichés.</p>
+      <button class="btn secondary" id="smtp-test">Tester la connexion SMTP</button>
+    </div>
+    <div class="card">
+      <h2>Connexion à SanctiMaps</h2>
+      <table><tbody>
+        <tr><th>Endpoint</th><td>https://sanctimaps.fr/api/newsletter/today</td></tr>
+        <tr><th>Clé API</th><td>configurée (masquée)</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <h2>Réinitialiser la démo</h2>
+      <button class="btn secondary" id="reset">Remettre les données fictives</button>
+    </div>
+  </section>
+
+  <!-- FORMULAIRE PUBLIC -->
+  <section class="view" id="view-subscribe">
+    <div class="narrow">
+      <div class="card">
+        <h1>Le saint du jour, chaque matin</h1>
+        <p>Recevez gratuitement chaque jour la présentation du saint du jour par SanctiMaps.</p>
+        <div id="sub-result"></div>
+        <form id="subscribe-form">
+          <div class="field"><label>Adresse e-mail</label><input type="email" name="email" required></div>
+          <div class="field"><label>Prénom (facultatif)</label><input type="text" name="first" maxlength="80"></div>
+          <p class="hint">J'accepte de recevoir chaque jour par e-mail la newsletter « Le saint du jour » de SanctiMaps. Je peux me désinscrire à tout moment via le lien présent dans chaque e-mail.</p>
+          <button class="btn">Je m'inscris</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var KEY = "sanctimaps-newsletter-demo-v1";
+  var TZ = "Europe/Paris";
+
+  function todayIso() { return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date()); }
+  function addDays(iso, n) { var d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  function nowTime() { return new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }).format(new Date()); }
+  function fr(iso) { return new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeZone: "UTC" }).format(new Date(iso + "T12:00:00Z")); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function badge(s) { var L = { draft: "Brouillon", scheduled: "Programmée", sending: "Envoi en cours", sent: "Envoyée", failed: "Échec", active: "Actif", pending: "En attente", unsubscribed: "Désinscrit", blocked: "Bloqué" }; return '<span class="badge ' + s + '">' + (L[s] || s) + "</span>"; }
+
+  var CAL = { "09-14": "La Croix glorieuse", "09-15": "Notre-Dame des Douleurs", "09-16": "Saint Corneille et saint Cyprien", "09-17": "Saint Robert Bellarmin", "09-18": "Saint Joseph de Cupertino", "09-19": "Saint Janvier", "09-20": "Saint André Kim et ses compagnons", "09-21": "Saint Matthieu", "09-22": "Saint Maurice", "09-23": "Saint Pio de Pietrelcina, Saint Lin", "09-24": "Saint Thècle", "09-25": "Saint Firmin", "09-26": "Saint Côme et saint Damien", "09-27": "Saint Vincent de Paul", "09-28": "Saint Venceslas", "09-29": "Saints Michel, Gabriel et Raphaël", "09-30": "Saint Jérôme" };
+  function saintFor(iso) { return CAL[iso.slice(5)] || "Saint Maurice"; }
+
+  function seed() {
+    var t = todayIso();
+    var first = ["Marie", "Jean", "", "Claire", "Paul", "", "Anne", "Luc", "Élise", "", "Thomas", "Sophie"];
+    var subs = [];
+    for (var i = 0; i < 24; i++) {
+      var st = i < 18 ? "active" : i < 20 ? "pending" : i < 23 ? "unsubscribed" : "blocked";
+      var d = addDays(t, -(40 - i));
+      subs.push({ id: i + 1, email: "abonne" + (i + 1) + "@exemple.fr", first: first[i % first.length], status: st, subscribedAt: d, confirmedAt: st === "pending" ? null : addDays(d, 0) });
+    }
+    var history = [];
+    for (var k = 7; k >= 1; k--) {
+      var date = addDays(t, -k), failed = k === 4;
+      history.push({ date: date, saint: saintFor(date), status: failed ? "failed" : "sent", sent: failed ? 9 : 18 - (k % 3), total: 18 - (k % 3), time: "07:0" + (k % 4) });
+    }
+    return { subs: subs, history: history, settings: { auto: true, time: "07:00", tz: TZ, fromEmail: "newsletter@sanctimaps.fr", fromName: "SanctiMaps" }, logs: [], nextId: 100 };
+  }
+
+  var state;
+  try { state = JSON.parse(localStorage.getItem(KEY)) || seed(); } catch (e) { state = seed(); }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function log(level, msg) { state.logs.unshift({ at: new Date().toLocaleString("fr-FR", { timeZone: TZ }), level: level, msg: msg }); state.logs = state.logs.slice(0, 40); }
+
+  var flashTimer;
+  function flash(cls, text) {
+    var el = document.getElementById("flash");
+    el.innerHTML = '<div class="alert ' + cls + '">' + esc(text) + "</div>";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    clearTimeout(flashTimer); flashTimer = setTimeout(function () { el.innerHTML = ""; }, 6000);
+  }
+  function activeCount() { return state.subs.filter(function (s) { return s.status === "active"; }).length; }
+  function todayEntry() { var t = todayIso(); return state.history.find(function (h) { return h.date === t; }); }
+
+  function nextSend() {
+    if (!state.settings.auto) return null;
+    var t = todayIso(), done = todayEntry();
+    if (!done && nowTime() < state.settings.time) return "Aujourd'hui à " + state.settings.time;
+    return "Demain à " + state.settings.time;
+  }
+
+  // ─── Rendus ─────────────────────────────────────────
+  function renderDashboard() {
+    var t = todayIso(), last = state.history[state.history.length - 1], te = todayEntry(), n = nextSend();
+    document.getElementById("d-saint").textContent = saintFor(t);
+    document.getElementById("d-next").textContent = n || "Désactivé";
+    document.getElementById("d-next-hint").textContent = state.settings.auto ? "Tous les jours à " + state.settings.time + " (" + state.settings.tz + ")" : "Envoi automatique désactivé";
+    document.getElementById("d-subs").textContent = activeCount().toLocaleString("fr-FR");
+    document.getElementById("d-last").innerHTML = last ? (last.status === "sent" ? "✓ " : "") + badge(last.status) : "—";
+    document.getElementById("d-last-hint").textContent = last ? fr(last.date) + " — " + last.sent + " envoyé(s)" : "";
+    document.getElementById("d-today").textContent = fr(t);
+    document.getElementById("d-status").innerHTML = te ? badge(te.status) : '<span class="hint">pas encore envoyée</span>';
+    document.getElementById("d-count").textContent = activeCount();
+  }
+
+  var pv = { day: "a", mode: "desktop" }, SUBJECTS = { a: "Le saint du jour : Saint Maurice", b: "Les saints du jour : Saint Pio de Pietrelcina et Saint Lin" };
+  function renderNewsletter() {
+    var f = document.getElementById("n-frame");
+    var src = "demo/newsletter-" + pv.day + ".html";
+    if (f.getAttribute("src") !== src) f.setAttribute("src", src);
+    f.className = "preview" + (pv.mode === "mobile" ? " mobile" : "");
+    document.getElementById("n-subject").textContent = SUBJECTS[pv.day];
+    document.getElementById("n-switch").textContent = pv.day === "a" ? "Voir un jour avec deux saints" : "Voir un jour avec un saint";
+    document.querySelectorAll("[data-pv]").forEach(function (b) { b.className = "btn" + (b.dataset.pv === pv.mode ? "" : " secondary"); });
+  }
+
+  function renderSchedule() {
+    var f = document.getElementById("schedule-form");
+    f.auto.checked = state.settings.auto; f.time.value = state.settings.time; f.tz.value = state.settings.tz;
+    var rows = state.logs.map(function (l) { return '<tr><td style="white-space:nowrap">' + esc(l.at) + '</td><td class="' + l.level + '">' + esc(l.msg) + "</td></tr>"; }).join("");
+    document.getElementById("s-logs").innerHTML = rows || '<tr><td class="hint">Aucun événement pour l\'instant. Essayez « Envoyer maintenant » ou « Envoyer un test ».</td></tr>';
+  }
+
+  function renderSubscribers() {
+    var counts = { active: 0, pending: 0, unsubscribed: 0, blocked: 0 };
+    state.subs.forEach(function (s) { counts[s.status]++; });
+    document.getElementById("sub-counts").innerHTML = Object.keys(counts).map(function (k) { return '<div class="card stat"><div class="label">' + badge(k) + '</div><div class="value">' + counts[k] + "</div></div>"; }).join("");
+    var q = document.getElementById("sub-q").value.trim().toLowerCase(), st = document.getElementById("sub-status").value;
+    var list = state.subs.filter(function (s) { return (!q || s.email.indexOf(q) >= 0) && (!st || s.status === st); }).slice().reverse();
+    document.getElementById("sub-rows").innerHTML = list.map(function (s) {
+      var acts = s.status === "pending" ? '<button class="btn small" data-op="confirm" data-id="' + s.id + '">Simuler le clic de confirmation</button>' : "";
+      acts += s.status === "blocked" ? '<button class="btn small secondary" data-op="unblock" data-id="' + s.id + '">Débloquer</button>' : '<button class="btn small secondary" data-op="block" data-id="' + s.id + '">Bloquer</button>';
+      acts += '<button class="btn small danger" data-op="delete" data-id="' + s.id + '">Supprimer</button>';
+      return "<tr><td>" + esc(s.email) + "</td><td>" + (esc(s.first) || "—") + "</td><td>" + badge(s.status) + "</td><td>" + fr(s.subscribedAt) + "</td><td>" + (s.confirmedAt ? fr(s.confirmedAt) : "—") + '</td><td><div class="actions">' + acts + "</div></td></tr>";
+    }).join("") || '<tr><td colspan="6" class="hint">Aucun abonné.</td></tr>';
+  }
+
+  function renderHistory() {
+    document.getElementById("h-rows").innerHTML = state.history.slice().reverse().map(function (h) {
+      var subj = (h.saint.indexOf(",") >= 0 || h.saint.indexOf(" et ") >= 0 ? "Les saints du jour : " : "Le saint du jour : ") + h.saint;
+      return "<tr><td>" + fr(h.date) + "</td><td>" + esc(h.saint) + "</td><td>" + esc(subj) + "</td><td>" + h.sent + " / " + h.total + "</td><td>" + badge(h.status) + "</td><td>" + h.time + "</td></tr>";
+    }).join("");
+    var last = state.history[state.history.length - 1];
+    var L = last && last.status === "sent"
+      ? [["06:59", "info", "Scheduler démarré"], ["07:00", "info", "Saint récupéré : " + last.saint], ["07:00", "info", "Newsletter générée"], ["07:01", "info", last.total + " destinataire(s) trouvé(s)"], ["07:01", "info", "Envoi commencé"], ["07:02", "info", "Envoi terminé : " + last.sent + " envoyé(s), 0 échec(s)"]]
+      : [["07:00", "info", "Scheduler démarré"], ["07:01", "error", "Erreur SMTP : trop d'échecs consécutifs, envoi interrompu. Reprise manuelle requise."]];
+    document.getElementById("h-logs").innerHTML = L.map(function (l) { return '<tr><td>' + l[0] + '</td><td class="' + l[1] + '">' + esc(l[2]) + "</td></tr>"; }).join("");
+  }
+
+  function renderSettings() {
+    var f = document.getElementById("sender-form");
+    f.email.value = state.settings.fromEmail; f.name.value = state.settings.fromName;
+  }
+
+  var views = { dashboard: renderDashboard, newsletter: renderNewsletter, schedule: renderSchedule, subscribers: renderSubscribers, history: renderHistory, settings: renderSettings, subscribe: function () {} };
+  function route() {
+    var v = (location.hash || "#dashboard").slice(1);
+    if (!views[v]) v = "dashboard";
+    document.querySelectorAll(".view").forEach(function (el) { el.classList.toggle("active", el.id === "view-" + v); });
+    document.querySelectorAll(".topbar a").forEach(function (a) { a.classList.toggle("active", a.getAttribute("href") === "#" + v); });
+    views[v]();
+  }
+  window.addEventListener("hashchange", route);
+
+  // ─── Actions ────────────────────────────────────────
+  document.querySelectorAll("[data-test-form]").forEach(function (f) {
+    f.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var email = f.querySelector("input").value;
+      log("info", "Envoi test à " + email.replace(/^(.).*@/, "$1***@") + " (aucun abonné concerné)");
+      save(); flash("ok", "E-mail de test envoyé à " + email + " (simulation). L'envoi général n'a pas été déclenché.");
+      f.reset();
+    });
+  });
+
+  document.getElementById("send-now").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var t = todayIso(), key = "newsletter-" + t;
+    if (todayEntry()) {
+      log("info", key + " déjà envoyée : aucun nouvel envoi");
+      save(); flash("warn", "La newsletter du jour (" + key + ") a déjà été envoyée : aucun nouvel envoi. C'est la protection contre les doubles envois.");
+      e.target.reset(); return;
+    }
+    var n = activeCount();
+    ["Préparation de " + key + " (manuel)", "Saint récupéré : " + saintFor(t), "Newsletter générée", n + " destinataire(s) trouvé(s)", "Envoi commencé", "Envoi terminé : " + n + " envoyé(s), 0 échec(s)"].forEach(function (m) { log("info", m); });
+    state.history.push({ date: t, saint: saintFor(t), status: "sent", sent: n, total: n, time: nowTime() });
+    save(); flash("ok", "Newsletter envoyée à " + n + " abonné(s) (simulation). Cliquez à nouveau pour voir la protection anti-doublon.");
+    e.target.reset(); renderDashboard();
+  });
+
+  document.querySelectorAll("[data-pv]").forEach(function (b) { b.addEventListener("click", function () { pv.mode = b.dataset.pv; renderNewsletter(); }); });
+  document.getElementById("n-switch").addEventListener("click", function () { pv.day = pv.day === "a" ? "b" : "a"; renderNewsletter(); });
+
+  document.getElementById("schedule-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    state.settings.auto = f.auto.checked; state.settings.time = f.time.value; state.settings.tz = f.tz.value;
+    log("info", "Programmation modifiée : " + (f.auto.checked ? "activée" : "désactivée") + ", " + f.time.value + " (" + f.tz.value + ")");
+    save(); flash("ok", "Programmation enregistrée."); renderSchedule();
+  });
+
+  document.getElementById("sub-q").addEventListener("input", renderSubscribers);
+  document.getElementById("sub-status").addEventListener("change", renderSubscribers);
+  document.getElementById("sub-rows").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-op]"); if (!b) return;
+    var id = Number(b.dataset.id), s = state.subs.find(function (x) { return x.id === id; }); if (!s) return;
+    var op = b.dataset.op;
+    if (op === "delete") {
+      if (!confirm("Supprimer définitivement " + s.email + " et toutes ses données ?")) return;
+      state.subs = state.subs.filter(function (x) { return x.id !== id; }); flash("ok", "Abonné supprimé définitivement (RGPD).");
+    } else if (op === "block") { s.status = "blocked"; flash("ok", s.email + " est bloqué : il ne recevra plus rien."); }
+    else if (op === "unblock") { s.status = s.confirmedAt ? "active" : "pending"; flash("ok", s.email + " est débloqué."); }
+    else if (op === "confirm") { s.status = "active"; s.confirmedAt = todayIso(); flash("ok", s.email + " a confirmé son inscription : il est maintenant actif."); }
+    save(); renderSubscribers();
+  });
+
+  document.getElementById("subscribe-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target, email = f.email.value.trim().toLowerCase();
+    var ex = state.subs.find(function (s) { return s.email === email; });
+    if (!ex) state.subs.push({ id: state.nextId++, email: email, first: f.first.value.trim(), status: "pending", subscribedAt: todayIso(), confirmedAt: null });
+    else if (ex.status === "unsubscribed") { ex.status = "pending"; ex.confirmedAt = null; }
+    save();
+    document.getElementById("sub-result").innerHTML = '<div class="alert ok">Merci ! Si cette adresse n\'est pas déjà inscrite, vous allez recevoir un e-mail pour confirmer votre inscription.</div><p class="hint">Démo : l\'abonné apparaît « En attente » dans l\'onglet <a href="#subscribers">Abonnés</a>, où vous pouvez simuler le clic de confirmation (double opt-in).</p>';
+    f.reset();
+  });
+
+  document.getElementById("sender-form").addEventListener("submit", function (e) {
+    e.preventDefault(); state.settings.fromEmail = e.target.email.value; state.settings.fromName = e.target.name.value;
+    save(); flash("ok", "Expéditeur enregistré.");
+  });
+  document.getElementById("smtp-test").addEventListener("click", function () { flash("ok", "Connexion SMTP réussie (simulation)."); });
+  document.getElementById("reset").addEventListener("click", function () { state = seed(); save(); flash("ok", "Données de démonstration réinitialisées."); route(); });
+
+  route();
+})();
+</script>
+</body>
+</html>
