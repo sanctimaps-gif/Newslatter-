@@ -7,6 +7,8 @@ export interface GeneratorOptions {
   siteUrl: string;
   privacyUrl: string;
   logoUrl?: string | null;
+  /** Nombre de saints présentés en détail (les suivants sont résumés par un lien). */
+  maxSaints?: number;
 }
 
 /**
@@ -24,10 +26,14 @@ export class NewsletterGenerator {
   ) {}
 
   async generate(date: string): Promise<GeneratedNewsletter> {
-    const { saints } = await this.source.getSaints(date);
+    const day = await this.source.getSaints(date);
+    const saints = day.saints.slice(0, this.options.maxSaints ?? 3);
+    const others = Math.max((day.total ?? day.saints.length) - saints.length, 0);
     const view = {
       dateLabel: formatFrenchDate(date),
       saints,
+      others,
+      dayUrl: day.dayUrl,
       siteUrl: this.options.siteUrl,
       logoUrl: this.options.logoUrl,
       privacyUrl: this.options.privacyUrl,
@@ -35,7 +41,7 @@ export class NewsletterGenerator {
     return {
       key: newsletterKey(date),
       date,
-      subject: buildSubject(saints),
+      subject: buildSubject(saints, others),
       html: renderDailySaintHtml(view),
       text: renderDailySaintText(view),
       saints,

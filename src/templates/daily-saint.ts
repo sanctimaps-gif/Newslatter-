@@ -7,6 +7,10 @@ import { PLACEHOLDERS, theme } from "./theme";
 export interface DailySaintView {
   dateLabel: string; // « mardi 22 septembre 2026 »
   saints: Saint[];
+  /** Nombre de saints du jour non présentés en détail. */
+  others?: number;
+  /** Page listant tous les saints du jour. */
+  dayUrl?: string;
   siteUrl: string;
   logoUrl?: string | null;
   privacyUrl: string;
@@ -26,6 +30,7 @@ function saintBlock(saint: Saint, main: boolean): string {
   const url = safeUrl(saint.url) ?? "#";
   const summary = truncate(saint.biography || saint.description, main ? INTRO_MAX : 320);
   const intro = saint.biography && saint.description ? saint.description : "";
+  const meta = [saint.life, saint.place].filter(Boolean).join(" · ");
 
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -42,6 +47,11 @@ function saintBlock(saint: Saint, main: boolean): string {
     </td>
   </tr>
   ${
+    meta
+      ? `<tr><td align="center" style="font-family:${theme.sansFamily};font-size:14px;line-height:20px;color:${c.muted};padding:0 0 14px 0;">${escapeHtml(meta)}</td></tr>`
+      : ""
+  }
+  ${
     intro
       ? `<tr><td style="font-family:${theme.fontFamily};font-size:18px;line-height:28px;color:${c.text};font-style:italic;padding:0 0 16px 0;" align="center">${escapeHtml(intro)}</td></tr>`
       : ""
@@ -57,7 +67,7 @@ function saintBlock(saint: Saint, main: boolean): string {
 
 export function renderDailySaintHtml(v: DailySaintView): string {
   const c = theme.colors;
-  const plural = v.saints.length > 1;
+  const plural = v.saints.length + (v.others ?? 0) > 1;
   const blocks = v.saints
     .map((s, i) =>
       i === 0
@@ -65,6 +75,14 @@ export function renderDailySaintHtml(v: DailySaintView): string {
         : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid ${c.border};padding:32px 0 0 0;margin-top:32px;">${saintBlock(s, false)}</td></tr></table>`,
     )
     .join(`<div style="height:32px;line-height:32px;font-size:1px;">&nbsp;</div>`);
+
+  const othersUrl = safeUrl(v.dayUrl);
+  const othersBlock = v.others
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="border-top:1px solid ${c.border};padding:28px 0 0 0;font-family:${theme.fontFamily};font-size:17px;line-height:26px;color:${c.text};">
+        ${v.others === 1 ? "Un autre saint est également fêté ce jour." : `${v.others} autres saints sont également fêtés ce jour.`}
+        ${othersUrl ? `<br><a href="${escapeHtml(othersUrl)}" style="color:${c.primary};font-weight:bold;">Voir tous les saints du jour</a>` : ""}
+      </td></tr></table>`
+    : "";
 
   const body = `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -86,6 +104,7 @@ export function renderDailySaintHtml(v: DailySaintView): string {
   <tr>
     <td class="px" style="padding:0 32px 32px 32px;">
       ${blocks}
+      ${othersBlock}
     </td>
   </tr>
 </table>`;
@@ -111,14 +130,23 @@ export function renderDailySaintText(v: DailySaintView): string {
   const lines: string[] = [
     PLACEHOLDERS.greeting,
     "",
-    `${v.saints.length > 1 ? "LES SAINTS DU JOUR" : "LE SAINT DU JOUR"} — ${v.dateLabel}`,
+    `${v.saints.length + (v.others ?? 0) > 1 ? "LES SAINTS DU JOUR" : "LE SAINT DU JOUR"} — ${v.dateLabel}`,
     "",
   ];
   for (const s of v.saints) {
     lines.push(s.name.toUpperCase());
+    const meta = [s.life, s.place].filter(Boolean).join(" · ");
+    if (meta) lines.push(meta);
     if (s.description) lines.push(s.description);
     if (s.biography) lines.push("", truncate(s.biography, INTRO_MAX));
     lines.push("", `Découvrir sa vie : ${s.url}`, "", "—", "");
+  }
+  if (v.others) {
+    lines.push(
+      v.others === 1 ? "Un autre saint est également fêté ce jour." : `${v.others} autres saints sont également fêtés ce jour.`,
+    );
+    if (v.dayUrl) lines.push(`Voir tous les saints du jour : ${v.dayUrl}`);
+    lines.push("");
   }
   lines.push(
     `Vous recevez cet e-mail car vous êtes inscrit(e) à la newsletter de ${theme.brandName}.`,
@@ -128,8 +156,11 @@ export function renderDailySaintText(v: DailySaintView): string {
   return lines.join("\n");
 }
 
-export function buildSubject(saints: Saint[]): string {
+export function buildSubject(saints: Saint[], others = 0): string {
   const names = saints.map((s) => s.name);
+  if (others > 0) {
+    return `Les saints du jour : ${names.join(", ")} et ${others} autre${others > 1 ? "s" : ""}`;
+  }
   if (names.length === 1) return `Le saint du jour : ${names[0]}`;
   const list = names.length === 2 ? names.join(" et ") : `${names.slice(0, -1).join(", ")} et ${names.at(-1)}`;
   return `Les saints du jour : ${list}`;

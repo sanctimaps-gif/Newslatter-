@@ -10,5 +10,6 @@ export function createGenerator(): NewsletterGenerator {
     siteUrl: e.SANCTIMAPS_SITE_URL,
     logoUrl: e.LOGO_URL,
     privacyUrl: urls.privacy(),
+    maxSaints: e.SANCTIMAPS_MAX_SAINTS,
   });
 }

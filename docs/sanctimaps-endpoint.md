@@ -1,91 +1,59 @@
-# Endpoint à ajouter côté SanctiMaps
+# Données SanctiMaps pour la newsletter
 
-L'application newsletter ne lit **jamais** directement la base de SanctiMaps.
-Si SanctiMaps n'a pas déjà d'API qui fournit le saint du jour, il faut y ajouter **un seul**
-endpoint en lecture seule, qui ne renvoie que ce dont la newsletter a besoin.
-
-## Contrat
+SanctiMaps est un site statique (GitHub Pages), sans serveur : il ne peut pas répondre
+à une API au sens classique. Les réponses sont donc **préparées d'avance** : un fichier JSON
+par jour de l'année, généré depuis les données du site par `tools/build-newsletter-api.mjs`
+(dépôt `sanctimaps`), et régénéré automatiquement avec les pages (`npm run build:pages`).
 
 ```
-GET /api/newsletter/today?date=AAAA-MM-JJ
-Authorization: Bearer <SANCTIMAPS_API_KEY>
+https://sanctimaps.fr/api/newsletter/09-23.json     les saints du 23 septembre
+https://sanctimaps.fr/api/newsletter/index.json     description du jeu de fichiers
 ```
 
-- `date` est facultatif ; sans ce paramètre, c'est la date du jour (Europe/Paris).
-  La newsletter l'envoie toujours, pour que les prévisualisations d'autres jours fonctionnent.
-- Si l'en-tête `Authorization` est absent ou faux → `401`.
-- Réponse `200` :
+Côté newsletter : `SANCTIMAPS_API_URL=https://sanctimaps.fr/api/newsletter/{MM-DD}.json`.
+Le connecteur remplace `{MM-DD}` par le jour voulu et vérifie que le fichier reçu
+est bien celui de ce jour (champ `day`).
+
+Pas de clé API : ces fichiers ne contiennent que ce que les pages publiques affichent déjà.
+L'application n'accède jamais directement aux données de SanctiMaps et ne les modifie pas.
+
+## Format
 
 ```json
 {
-  "date": "2026-09-22",
+  "version": 1,
+  "day": "09-23",
+  "label": "23 septembre",
+  "day_url": "https://sanctimaps.fr/calendrier/23-septembre/",
+  "total": 16,
   "saints": [
     {
-      "name": "Saint Maurice",
-      "description": "Chef de la légion thébaine, martyr à Agaune.",
-      "biography": "Texte plus long (facultatif, du HTML est accepté, il sera converti en texte)…",
-      "image": "https://sanctimaps.fr/images/saints/saint-maurice.jpg",
-      "url": "https://sanctimaps.fr/saints/saint-maurice"
+      "id": "pio-pietrelcina",
+      "name": "Pio de Pietrelcina",
+      "description": "Capucin stigmatisé de San Giovanni Rotondo, confesseur infatigable.",
+      "biography": "…",
+      "image": null,
+      "url": "https://sanctimaps.fr/saints/pio-de-pietrelcina/",
+      "life": "1887 – 1968",
+      "place": "Pietrelcina, Italie",
+      "patronage": "…"
     }
   ]
 }
 ```
 
-| Champ | Obligatoire | Remarque |
-|---|---|---|
-| `date` | oui | doit être la date demandée, sinon l'envoi est refusé |
-| `saints[].name` | oui | alias accepté : `title` |
-| `saints[].url` | oui | URL absolue ou relative au site |
-| `saints[].description` | conseillé | alias accepté : `summary` |
-| `saints[].biography` | non | tronquée à ~600 caractères dans l'e-mail |
-| `saints[].image` | non | alias accepté : `image_url` ; URL absolue ou relative |
+- Les saints sont **rangés du plus au moins présentable** : fiches rédigées à la main, patronage,
+  biographie, nombre de sources. La newsletter présente les `SANCTIMAPS_MAX_SAINTS` premiers
+  (3 par défaut) et renvoie pour les autres à `day_url`.
+- `image` est `null` : SanctiMaps n'a pas encore d'images de saints. Le template s'en passe ;
+  il suffira de remplir ce champ pour qu'elles apparaissent.
+- Le 29 février reprend les saints du 28 février.
 
-Plusieurs saints le même jour : il suffit de renvoyer plusieurs éléments dans `saints`
-(le premier est mis en avant). Un saint sans `name` ou sans `url` est ignoré ; s'il n'en reste aucun,
-la newsletter du jour n'est pas envoyée et l'erreur apparaît dans l'admin.
+## Autre source possible
 
-## Exemple (Next.js route handler — à adapter au code réel de SanctiMaps)
-
-```ts
-// app/api/newsletter/today/route.ts (dans le projet SanctiMaps)
-import { NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
-import { getSaintsForDay } from "@/lib/saints"; // fonction existante de SanctiMaps
-
-export const dynamic = "force-dynamic";
-
-function authorized(header: string | null) {
-  const expected = Buffer.from(`Bearer ${process.env.NEWSLETTER_API_KEY}`);
-  const got = Buffer.from(header ?? "");
-  return got.length === expected.length && timingSafeEqual(got, expected);
-}
-
-export async function GET(req: Request) {
-  if (!authorized(req.headers.get("authorization"))) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  const param = new URL(req.url).searchParams.get("date");
-  const date = param && /^\d{4}-\d{2}-\d{2}$/.test(param)
-    ? param
-    : new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
-
-  const saints = await getSaintsForDay(date); // lecture seule
-  return NextResponse.json({
-    date,
-    saints: saints.map((s) => ({
-      name: s.name,
-      description: s.shortDescription,
-      biography: s.biography,
-      image: s.imageUrl,
-      url: `https://sanctimaps.fr/saints/${s.slug}`,
-    })),
-  });
-}
-```
-
-Côté SanctiMaps : définir `NEWSLETTER_API_KEY` (même valeur que `SANCTIMAPS_API_KEY` dans
-l'application newsletter, générée par exemple avec `openssl rand -base64 48`).
-Cet endpoint ne modifie aucune donnée de SanctiMaps.
+Le connecteur accepte aussi une vraie API, sans marqueur dans l'URL :
+`GET {SANCTIMAPS_API_URL}?date=AAAA-MM-JJ`, avec `Authorization: Bearer {SANCTIMAPS_API_KEY}`
+si une clé est définie. La réponse doit alors contenir `"date": "AAAA-MM-JJ"` au lieu de `"day"`.
 
 ## Formulaire d'inscription à intégrer dans SanctiMaps
 
@@ -105,12 +73,12 @@ Option 2 — formulaire HTML natif (sans JavaScript) :
   <!-- anti-robots : doit rester vide et caché -->
   <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
   <!-- page de retour ; reçoit ?newsletter=ok ou ?newsletter=error -->
-  <input type="hidden" name="redirect" value="https://sanctimaps.fr/newsletter-merci">
+  <input type="hidden" name="redirect" value="https://sanctimaps.fr/lettre/">
   <button type="submit">Recevoir le saint du jour</button>
   <p><small>Désinscription possible à tout moment.
      <a href="https://newsletter.sanctimaps.fr/confidentialite">Confidentialité</a></small></p>
 </form>
 ```
 
-Option 3 — `fetch` en JSON vers `POST /api/subscribers` (`{ "email": "...", "first_name": "..." }`)
-depuis une origine listée dans `ALLOWED_ORIGINS`.
+Remplacer `newsletter.sanctimaps.fr` par l'adresse réelle de l'application
+(par exemple `sanctimaps-newsletter.vercel.app`).

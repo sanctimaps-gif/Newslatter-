@@ -10,10 +10,23 @@ export interface SaintSource {
 }
 
 /**
- * Connecteur HTTP vers l'endpoint sécurisé de SanctiMaps.
- * GET {SANCTIMAPS_API_URL}?date=AAAA-MM-JJ  +  Authorization: Bearer {SANCTIMAPS_API_KEY}
- * Aucun accès direct à la base de données de SanctiMaps.
+ * Connecteur HTTP vers SanctiMaps. Aucun accès direct à ses données.
+ *
+ * Deux formes d'URL :
+ * - avec un marqueur, ex. https://sanctimaps.fr/api/newsletter/{MM-DD}.json
+ *   (fichiers statiques par jour ; marqueurs acceptés : {MM-DD}, {date}) ;
+ * - sans marqueur : GET {SANCTIMAPS_API_URL}?date=AAAA-MM-JJ.
+ * La clé, si elle est définie, est envoyée en Authorization: Bearer.
  */
+export function buildRequestUrl(apiUrl: string, date: string): URL {
+  if (apiUrl.includes("{MM-DD}") || apiUrl.includes("{date}")) {
+    return new URL(apiUrl.replace("{MM-DD}", date.slice(5)).replace("{date}", date));
+  }
+  const url = new URL(apiUrl);
+  url.searchParams.set("date", date);
+  return url;
+}
+
 export class SanctiMapsHttpSource implements SaintSource {
   constructor(
     private readonly apiUrl: string,
@@ -24,8 +37,7 @@ export class SanctiMapsHttpSource implements SaintSource {
   ) {}
 
   async getSaints(date: string): Promise<DailySaints> {
-    const url = new URL(this.apiUrl);
-    url.searchParams.set("date", date);
+    const url = buildRequestUrl(this.apiUrl, date);
 
     let lastError: unknown;
     for (let attempt = 0; attempt <= this.retries; attempt++) {

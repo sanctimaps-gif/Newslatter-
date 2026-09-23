@@ -118,12 +118,17 @@ Ajoutez dans `vercel.json` :
 
 ## 6. Brancher SanctiMaps et activer l'envoi
 
-1. Côté SanctiMaps, ajouter l'endpoint décrit dans [sanctimaps-endpoint.md](sanctimaps-endpoint.md).
+SanctiMaps publie un fichier JSON par jour de l'année dans `api/newsletter/`
+(voir [sanctimaps-endpoint.md](sanctimaps-endpoint.md)). Une fois ces fichiers en ligne :
+
+1. Vérifier dans un navigateur que `https://sanctimaps.fr/api/newsletter/09-23.json` s'affiche.
 2. Dans Vercel, modifier les variables puis faire un **Redeploy** :
    - `SANCTIMAPS_MOCK` = `false` ;
-   - `SANCTIMAPS_API_URL` = `https://sanctimaps.fr/api/newsletter/today` ;
-   - `SANCTIMAPS_API_KEY` = la même clé que celle configurée côté SanctiMaps.
-3. Vérifier dans **Newsletter** que l'aperçu affiche bien le vrai saint du jour.
+   - `SANCTIMAPS_API_URL` = `https://sanctimaps.fr/api/newsletter/{MM-DD}.json`
+     (à recopier tel quel, accolades comprises) ;
+   - `LOGO_URL` = `https://sanctimaps.fr/data/brand/logo.png`.
+   Aucune clé API n'est nécessaire : ces fichiers ne contiennent que des informations déjà publiques.
+3. Vérifier dans **Newsletter** que l'aperçu affiche bien les vrais saints du jour.
 4. **Programmation** → cocher *Newsletter automatique*, régler l'heure → *Enregistrer*.
 
 > ⚠️ N'activez pas l'envoi automatique tant que `SANCTIMAPS_MOCK=true` : les abonnés recevraient le saint fictif.

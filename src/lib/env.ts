@@ -19,7 +19,10 @@ const schema = z.object({
 
   CRON_SECRET: z.string().min(16, "CRON_SECRET doit faire au moins 16 caractères"),
 
-  SANCTIMAPS_API_URL: z.string().url().optional().or(z.literal("")),
+  // Ex. https://sanctimaps.fr/api/newsletter/{MM-DD}.json
+  SANCTIMAPS_API_URL: z.string().regex(/^https?:\/\//, "URL http(s) attendue").optional().or(z.literal("")),
+  // Nombre de saints présentés en détail ; les autres sont résumés par un lien.
+  SANCTIMAPS_MAX_SAINTS: z.coerce.number().int().min(1).max(10).default(3),
   SANCTIMAPS_API_KEY: z.string().optional(),
   SANCTIMAPS_SITE_URL: z.string().url().default("https://sanctimaps.fr"),
   SANCTIMAPS_MOCK: z.enum(["true", "false"]).default("false"),

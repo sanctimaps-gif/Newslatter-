@@ -22,7 +22,7 @@ export default async function Dashboard({
   const [saintsResult, next, activeCount, lastNewsletter, todayNewsletter] = await Promise.all([
     getSaintSource()
       .getSaints(today)
-      .then((d) => ({ ok: true as const, saints: d.saints }))
+      .then((d) => ({ ok: true as const, saints: d.saints, total: d.total ?? d.saints.length }))
       .catch((err: Error) => ({ ok: false as const, error: err.message })),
     nextScheduledSend(settings),
     prisma.subscriber.count({ where: { status: "active" } }),
@@ -42,8 +42,11 @@ export default async function Dashboard({
         <div className="card stat">
           <div className="label">Aujourd&apos;hui</div>
           <div className="value">
-            {saintsResult.ok ? saintsResult.saints.map((s) => s.name).join(", ") : "Indisponible"}
+            {saintsResult.ok ? saintsResult.saints.slice(0, 3).map((s) => s.name).join(", ") : "Indisponible"}
           </div>
+          {saintsResult.ok && saintsResult.total > 3 && (
+            <p className="hint">et {saintsResult.total - 3} autre(s) fêté(s) ce jour</p>
+          )}
           {!saintsResult.ok && <p className="hint">SanctiMaps : {saintsResult.error}</p>}
         </div>
         <div className="card stat">

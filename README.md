@@ -2,10 +2,10 @@
 
 Application **indépendante** qui envoie chaque jour « Le saint du jour » aux abonnés de
 [SanctiMaps.fr](https://sanctimaps.fr). SanctiMaps n'est ni recréé ni modifié : il reste la
-source des données, lues via un endpoint sécurisé (voir [docs/sanctimaps-endpoint.md](docs/sanctimaps-endpoint.md)).
+source des données, lues via des fichiers JSON publiés par le site (voir [docs/sanctimaps-endpoint.md](docs/sanctimaps-endpoint.md)).
 
 ```
-SanctiMaps ──(GET /api/newsletter/today, Bearer)──▶ Newsletter App ──(SMTP)──▶ Abonnés
+SanctiMaps ──(GET /api/newsletter/{MM-DD}.json)──▶ Newsletter App ──(SMTP)──▶ Abonnés
                                                      ├─ génération (template séparé)
                                                      ├─ abonnés (double opt-in, RGPD)
                                                      ├─ scheduler + anti-doublon

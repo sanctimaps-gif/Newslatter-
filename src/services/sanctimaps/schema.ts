@@ -8,22 +8,35 @@ import { safeUrl } from "@/lib/escape";
  */
 const rawSaint = z
   .object({
-    name: z.string().optional(),
-    title: z.string().optional(),
-    description: z.string().optional(),
-    summary: z.string().optional(),
+    name: z.string().optional().nullable(),
+    title: z.string().optional().nullable(),
+    description: z.string().optional().nullable(),
+    summary: z.string().optional().nullable(),
     biography: z.string().optional().nullable(),
     image: z.string().optional().nullable(),
     image_url: z.string().optional().nullable(),
-    url: z.string().optional(),
+    url: z.string().optional().nullable(),
     feast_type: z.string().optional().nullable(),
+    life: z.string().optional().nullable(),
+    place: z.string().optional().nullable(),
   })
   .passthrough();
 
-export const rawResponse = z.object({
-  date: z.string(),
-  saints: z.array(rawSaint),
-});
+/**
+ * Deux formes acceptées :
+ * - `date` (AAAA-MM-JJ) : réponse d'une API qui connaît l'année ;
+ * - `day` (MM-JJ) : fichier statique par jour de l'année, comme ceux que
+ *   SanctiMaps publie dans /api/newsletter/<MM-JJ>.json.
+ */
+export const rawResponse = z
+  .object({
+    date: z.string().optional(),
+    day: z.string().optional(),
+    total: z.number().int().nonnegative().optional(),
+    day_url: z.string().optional().nullable(),
+    saints: z.array(rawSaint),
+  })
+  .refine((r) => r.date || r.day, { message: "champ « date » ou « day » manquant" });
 
 function stripHtml(value: string): string {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -46,10 +59,12 @@ export function normalize(input: unknown, expectedDate: string, siteUrl: string)
   if (!parsed.success) {
     throw new InvalidSaintDataError(`Réponse SanctiMaps invalide : ${parsed.error.issues[0]?.message}`);
   }
-  if (parsed.data.date !== expectedDate) {
-    throw new InvalidSaintDataError(
-      `Date inattendue : ${parsed.data.date} reçue, ${expectedDate} demandée`,
-    );
+  const received = parsed.data.date ?? parsed.data.day;
+  const matches = parsed.data.date
+    ? parsed.data.date === expectedDate
+    : parsed.data.day === expectedDate.slice(5);
+  if (!matches) {
+    throw new InvalidSaintDataError(`Date inattendue : ${received} reçue, ${expectedDate} demandée`);
   }
 
   const saints: Saint[] = [];
@@ -64,11 +79,18 @@ export function normalize(input: unknown, expectedDate: string, siteUrl: string)
       image: absolute(raw.image ?? raw.image_url, siteUrl),
       url,
       feastType: raw.feast_type ?? undefined,
+      life: raw.life ? stripHtml(raw.life) : undefined,
+      place: raw.place ? stripHtml(raw.place) : undefined,
     });
   }
 
   if (saints.length === 0) {
     throw new InvalidSaintDataError(`Aucun saint exploitable pour le ${expectedDate}`);
   }
-  return { date: expectedDate, saints };
+  return {
+    date: expectedDate,
+    saints,
+    total: Math.max(parsed.data.total ?? saints.length, saints.length),
+    dayUrl: absolute(parsed.data.day_url, siteUrl),
+  };
 }
