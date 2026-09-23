@@ -9,7 +9,11 @@ if (process.env.VERCEL !== "1") process.exit(0);
 
 const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 if (!url) {
-  console.error("DATABASE_URL manquante : ajoutez une base PostgreSQL au projet Vercel (onglet Storage).");
-  process.exit(1);
+  // Le site peut quand même être construit : il faudra redéployer une fois la base branchée.
+  console.warn(
+    "⚠️  DATABASE_URL manquante : les tables ne sont pas créées. Ajoutez une base Neon " +
+      "(onglet Storage → Create Database → Neon → Connect), puis faites Redeploy.",
+  );
+  process.exit(0);
 }
 execSync("npx prisma migrate deploy", { stdio: "inherit", env: { ...process.env, DATABASE_URL: url } });

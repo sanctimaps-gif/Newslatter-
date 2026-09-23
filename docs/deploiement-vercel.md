@@ -24,8 +24,8 @@ Ce qu'il faut :
    L'adresse du site sera alors `https://sanctimaps-newsletter.vercel.app`.
 4. Laisser *Framework Preset* sur **Next.js** et ne rien changer aux autres réglages.
 5. Cliquer sur **Deploy**.
-   Ce premier déploiement **échoue** avec le message « DATABASE_URL manquante ». C'est normal :
-   la base de données n'existe pas encore.
+   Tant que la base de données n'est pas créée, le journal du build affiche l'avertissement
+   « DATABASE_URL manquante » : c'est normal, l'étape 2 la crée.
 
 ## 2. Créer la base de données
 
