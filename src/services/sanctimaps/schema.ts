@@ -19,6 +19,7 @@ const rawSaint = z
     feast_type: z.string().optional().nullable(),
     life: z.string().optional().nullable(),
     place: z.string().optional().nullable(),
+    status_label: z.string().optional().nullable(),
   })
   .passthrough();
 
@@ -53,6 +54,15 @@ function absolute(url: string | null | undefined, base: string): string | undefi
 
 export class InvalidSaintDataError extends Error {}
 
+const HAS_TITLE = /^(saint|sainte|saints|saintes|san|santa|santo|são|st\.?|ste\.?|bienheureux|bienheureuse|vénérable|serviteur|servante|notre-dame)\b/i;
+
+/** « Pio de Pietrelcina » + « Saint » → « Saint Pio de Pietrelcina », sans doubler un titre déjà présent. */
+export function withTitle(name: string, statusLabel?: string | null): string {
+  const label = statusLabel?.trim();
+  if (!label || HAS_TITLE.test(name)) return name;
+  return `${label} ${name}`;
+}
+
 /** Convertit la réponse brute dans le format interne et vérifie les données. */
 export function normalize(input: unknown, expectedDate: string, siteUrl: string): DailySaints {
   const parsed = rawResponse.safeParse(input);
@@ -69,7 +79,7 @@ export function normalize(input: unknown, expectedDate: string, siteUrl: string)
 
   const saints: Saint[] = [];
   for (const raw of parsed.data.saints) {
-    const name = stripHtml(raw.name ?? raw.title ?? "");
+    const name = withTitle(stripHtml(raw.name ?? raw.title ?? ""), raw.status_label ? stripHtml(raw.status_label) : null);
     const url = absolute(raw.url, siteUrl);
     if (!name || !url) continue; // donnée incomplète : ignorée
     saints.push({

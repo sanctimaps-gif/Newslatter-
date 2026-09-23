@@ -44,10 +44,22 @@ describe("fichiers statiques SanctiMaps (un par jour de l'année)", () => {
     const others = fixture.total - 3;
     expect(nl.saints).toHaveLength(3);
     expect(nl.subject).toBe(
-      `Les saints du jour : ${fixture.saints.slice(0, 3).map((s: { name: string }) => s.name).join(", ")} et ${others} autres`,
+      `Les saints du jour : ${normalize(fixture, "2026-09-23", site).saints.slice(0, 3).map((s) => s.name).join(", ")} et ${others} autres`,
     );
     expect(nl.html).toContain(`${others} autres saints sont également fêtés ce jour.`);
     expect(nl.html).toContain("https://sanctimaps.fr/calendrier/23-septembre/");
     expect(nl.text).toContain("Voir tous les saints du jour : https://sanctimaps.fr/calendrier/23-septembre/");
+  });
+});
+
+describe("titre du saint", () => {
+  it("ajoute « Saint » / « Sainte » sans le doubler", async () => {
+    const { withTitle } = await import("@/services/sanctimaps/schema");
+    expect(withTitle("Pio de Pietrelcina", "Saint")).toBe("Saint Pio de Pietrelcina");
+    expect(withTitle("Élisabeth", "Sainte")).toBe("Sainte Élisabeth");
+    expect(withTitle("San Simpliciano", "Saint")).toBe("San Simpliciano");
+    expect(withTitle("Saint Maurice", "Saint")).toBe("Saint Maurice");
+    expect(withTitle("Lin", null)).toBe("Lin");
+    expect(normalize(fixture, "2026-09-23", site).saints[0].name).toBe("Saint Pio de Pietrelcina");
   });
 });
